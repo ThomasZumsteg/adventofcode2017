@@ -6,7 +6,7 @@ import requests
 SESSION_KEY = "AOC_SESSION"
 AOE_URL = "http://adventofcode.com"
 
-def get_intput(day, year):
+def get_input(day, year):
     r = requests.get("{}/{}/day/{}/input".format(AOE_URL, year, day),
                      cookies=dict(session=os.environ.get(SESSION_KEY)))
     if not r.ok:
