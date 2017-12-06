@@ -14,5 +14,5 @@ def get_input(day, year):
             r.status_code, r.reason))
     return r.text
 
-def line_parser(text, parse=int):
-    return [parse(item) for item in text.splitlines()]
+def line_parser(text, parse=int, seperator='\n'):
+    return [parse(item) for item in text.split(seperator) if item != '']
