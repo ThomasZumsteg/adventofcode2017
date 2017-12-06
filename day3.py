@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from get_input import get_intput, line_parser
+from get_input import get_input, line_parser
 
 def spiral_coords():
     # 0

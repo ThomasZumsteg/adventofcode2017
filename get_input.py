@@ -15,9 +15,4 @@ def get_input(day, year):
     return r.text
 
 def line_parser(text, parse=int):
-    result = []
-    for line in text.splitlines():
-        result.append([])
-        for num in line.split():
-            result[-1].append(parse(num))
-    return result
+    return [parse(item) for item in text.splitlines()]
