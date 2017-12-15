@@ -2,8 +2,9 @@
 
 from get_input import get_input, line_parser
 
-def knot_hash(hash_vals, hash_size=256, iterations=64):
+def knot_hash(chars, hash_size=256, iterations=64):
     hash_list = list(range(hash_size))
+    hash_vals = ([ord(c) for c in chars] + [17, 31, 73, 47, 23])
     shift_distance = 0
     for skip_size, val in enumerate(hash_vals * iterations):
         hash_list = list(reversed(hash_list[:val])) + hash_list[val:]
@@ -23,14 +24,16 @@ def dense_hash(values, block_size=16):
     return hash_str
 
 def part1(lengths, n_items=256):
-    items = knot_hash(lengths, hash_size=n_items, iterations=1)
+    chars = ''.join( chr(l) for l in lengths )
+    items = knot_hash(chars, hash_size=n_items, iterations=1)
     return items[0] * items[1]
 
 def test_part1():
-    assert part1([227,169,3,166,246,201,0,47,1,255,2,254,96,3,97,144]) == 13760
+    test_input = [227,169,3,166,246,201,0,47,1,255,2,254,96,3,97,144]
+    assert part1(test_input) == 13760
 
 def part2(chars, hash_size=256, iterations=64, block_size=16):
-    hash_vals = knot_hash([ord(c) for c in chars] + [17, 31, 73, 47, 23])
+    hash_vals = knot_hash(chars)
     return dense_hash(hash_vals)
 
 def test_part2():
