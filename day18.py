@@ -1,88 +1,82 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from get_input import get_input, line_parser
+import logging
+import sys
 from collections import defaultdict
 
+logging.basicConfig(
+        stream=sys.stderr,
+        level=logging.INFO)
+
 def part1(prog):
-    prog_1 = prog_runner(prog)
+    prog_1 = Program(prog, 0)
     prev = None
-    for sound in prog_1:
+    while True:
+        sound = next(prog_1)
         if sound is None and prev != 0:
             return prev
         else:
             prev = sound
 
-def prog_runner(prog, env=None):
-    if env is None:
-        env = defaultdict(int, {})
-    else:
-        env = defaultdict(int, env)
-    i = 0
-    while True:
-        func, reg, *vals = prog[i].split()
-        if vals:
-            try:
-                val = int(vals[0])
-            except ValueError:
-                val = env[vals[0]]
-
-        if func == 'rcv':
-            val = None
-            while val is None:
-                val = yield
-            if val != 0:
-                env[reg] = val
-        elif func == 'snd':
-            try:
-                yield int(reg)
-            except ValueError:
-                yield env[reg]
-        elif func == 'set':
-            env[reg] = val
-        elif func == 'add':
-            env[reg] += val
-        elif func == 'mul':
-            env[reg] *= val
-        elif func == 'mod':
-            env[reg] %= val
-        elif func == 'jgz':
-            if env[reg] > 0:
-                i += val
-                continue
-        i += 1
-
-def test_prog_runner():
-    prog = prog_runner(TEST_LINES, env={'p': 0})
-    assert next(prog) == 1
-    assert next(prog) == 2
-    assert next(prog) == 0
-    assert next(prog) == None
-    assert prog.send(3) == None
-    assert prog.send(4) == None
-    assert prog.send(5) == None
-
-    prog1 = prog_runner(TEST_LINES, env={'p': 0})
-    prog2 = prog_runner(TEST_LINES, env={'p': 1})
-    excepted = (
-            ((1, 1), (None, None)),
-            ((2, 2), (None, None)),
-            ((0, 1), (None, None)),
-            ((None, None), (None, None)),
-            ((None, None), (None, None)),
-            ((None, None), (1, 1)),
-            ((None, None), (2, 2)),
-            ((None, None), (1, 0)))
-    for rx, tx in excepted:
-        assert rx[0] == prog1.send(tx[0])
-        assert rx[1] == prog2.send(tx[1])
-
 class Program(object):
+
     def __init__(self, lines, pid):
-        self._runner = prog_runner(lines, env={'p': pid})
+        self._program = Program._compile(lines)
         self._pid = pid
+        self.env = defaultdict(int, {'p': pid})
+        self._runner = self._prog_runner(self._program)
+        self._func_pointer = 0
         self.sent = 0
         self._tx_queue = []
         self.send(None)
+
+    def _compile(lines):
+        program = []
+        for line in lines:
+            program.append(tuple(line.split()))
+        return tuple(program)
+
+    def _prog_runner(self, program):
+        while True:
+            func, reg, *args = program[self._func_pointer]
+            logging.debug("Pid: {}, Pointer: {}, {}[{}] {} env: {}".format(
+                self._pid, self._func_pointer, func, reg, args, dict(self.env)))
+
+            if args:
+                try:
+                    val = int(args[0])
+                except ValueError:
+                    val = self.env[args[0]]
+
+            if func == 'rcv':
+                recv = None
+                while recv is None:
+                    recv = yield
+                if recv != 0:
+                    self.env[reg] = recv
+            elif func == 'snd':
+                try:
+                    yield int(reg)
+                except ValueError:
+                    yield self.env[reg]
+            elif func == 'jgz':
+                try:
+                    reg_val = int(reg)
+                except ValueError:
+                    reg_val = self.env[reg]
+                if reg_val > 0:
+                    self._func_pointer += val
+                    continue
+            elif func == 'set':
+                self.env[reg] = val
+            elif func == 'add':
+                self.env[reg] += val
+            elif func == 'mul':
+                self.env[reg] *= val
+            elif func == 'mod':
+                self.env[reg] %= val
+            self._func_pointer += 1
 
     def send(self, *args):
         val = self._runner.send(*args)
@@ -92,7 +86,6 @@ class Program(object):
             val = next(self._runner)
 
     def __next__(self):
-        print('Prog {}: {}: {}'.format(self._pid, self._tx_queue[:10], len(self._tx_queue)))
         if len(self._tx_queue) > 0:
             return self._tx_queue.pop(0)
         else:
@@ -107,7 +100,7 @@ def part2(lines):
     while not (prog_1.blocked and prog_2.blocked):
         prog_2.send(next(prog_1))
         prog_1.send(next(prog_2))
-    return prog_1.sent
+    return prog_2.sent
 
 def test_part2():
     assert 3 == part2(TEST_LINES)
@@ -124,5 +117,6 @@ TEST_LINES = [l.strip() for l in
 if __name__ == '__main__':
     lines = get_input(day=18, year=2017).splitlines()
     # Part 1: 2951
+    # Part 2: 7366
     print('Part 1: {}'.format(part1(lines)))
     print('Part 2: {}'.format(part2(lines)))
